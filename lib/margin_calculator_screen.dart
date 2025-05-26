@@ -142,12 +142,12 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
           // Don't trigger the listener to avoid infinite loop
           _sellingPriceController.removeListener(_calculateOnChange);
 
-          // Don't format with .00, just use basic string conversion to respect user preference
+          // Don't format, just use basic string conversion to respect user preference
           _sellingPriceController.text = sellingPrice.toString();
 
           _sellingPriceController.addListener(_calculateOnChange);
 
-          _resultMessage = 'You should sell for ${_formatPriceValue(sellingPrice)} $_sellingPriceCurrency to get ${_formatMarginValue(margin)}% margin';
+          _resultMessage = 'You should sell for ${_formatDisplayValue(sellingPrice)} $_sellingPriceCurrency to get ${_formatDisplayValue(margin)}% margin';
         });
       } else {
         _sellingPriceController.text = sellingPrice.toString();
@@ -203,13 +203,16 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
         setState(() {
           // Don't trigger the listener to avoid infinite loop
           _marginController.removeListener(_calculateOnChange);
-          _marginController.text = _formatMarginValue(margin);
+
+          // Don't format, just use basic string conversion to respect user preference
+          _marginController.text = margin.toString();
+
           _marginController.addListener(_calculateOnChange);
 
-          _resultMessage = 'Your margin is ${_formatMarginValue(margin)}%';
+          _resultMessage = 'Your margin is ${_formatDisplayValue(margin)}%';
         });
       } else {
-        _marginController.text = _formatMarginValue(margin);
+        _marginController.text = margin.toString();
       }
     } catch (e) {
       setState(() {
@@ -224,21 +227,12 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
     return double.parse(value.replaceAll(',', '.'));
   }
 
-  // Format price value with two decimal places - used only for display in result message, not for input fields
-  String _formatPriceValue(double value) {
-    return value.toStringAsFixed(2);
-  }
-
-  // Format margin value (no automatic decimal places)
-  String _formatMarginValue(double value) {
-    // Remove trailing zeros after decimal point
-    String formatted = value.toString();
-    if (formatted.contains('.')) {
-      // Remove trailing zeros
-      formatted = formatted.replaceAll(RegExp(r'0+$'), '');
-      // Remove the decimal point if it's the last character
-      formatted = formatted.replaceAll(RegExp(r'\.$'), '');
-    }
+  // Format value for display only (used in result messages, not input fields)
+  String _formatDisplayValue(double value) {
+    // Format with 2 decimal places for display purposes only
+    String formatted = value.toStringAsFixed(2);
+    // Remove trailing zeros
+    formatted = formatted.replaceAll(RegExp(r'\.?0+$'), '');
     return formatted;
   }
 
@@ -409,9 +403,9 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
                                             newCurrency
                                           );
 
-                                          // Update controller with converted value
+                                          // Update controller with converted value (no formatting)
                                           _boughtPriceController.removeListener(_calculateOnChange);
-                                          _boughtPriceController.text = _formatPriceValue(convertedValue);
+                                          _boughtPriceController.text = convertedValue.toString();
                                           _boughtPriceController.addListener(_calculateOnChange);
                                         } catch (e) {
                                           // If parsing fails, keep the field as is
@@ -540,9 +534,9 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
                                             newCurrency
                                           );
 
-                                          // Update controller with converted value
+                                          // Update controller with converted value (no formatting)
                                           _sellingPriceController.removeListener(_calculateOnChange);
-                                          _sellingPriceController.text = _formatPriceValue(convertedValue);
+                                          _sellingPriceController.text = convertedValue.toString();
                                           _sellingPriceController.addListener(_calculateOnChange);
                                         } catch (e) {
                                           // If parsing fails, keep the field as is
