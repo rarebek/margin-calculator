@@ -79,6 +79,7 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
     // Case 2: Calculate margin if we have bought price and selling price
     else if (_boughtPriceController.text.isNotEmpty &&
              _sellingPriceController.text.isNotEmpty) {
+      // Only calculate margin - never auto-fill selling price
       _calculateMargin(updateUI: true);
     }
   }
@@ -430,6 +431,15 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
                                       return oldValue;
                                     }),
                                   ],
+                                  onChanged: (value) {
+                                    // If the field is being cleared, we need to clear the margin as well
+                                    // to prevent auto-recalculation of selling price
+                                    if (value.isEmpty) {
+                                      _marginController.removeListener(_calculateOnChange);
+                                      _marginController.text = '';
+                                      _marginController.addListener(_calculateOnChange);
+                                    }
+                                  },
                                 ),
                               ),
                             ),
