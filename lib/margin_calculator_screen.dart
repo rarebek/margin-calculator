@@ -141,13 +141,16 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
         setState(() {
           // Don't trigger the listener to avoid infinite loop
           _sellingPriceController.removeListener(_calculateOnChange);
-          _sellingPriceController.text = _formatPriceValue(sellingPrice);
+
+          // Don't format with .00, just use basic string conversion to respect user preference
+          _sellingPriceController.text = sellingPrice.toString();
+
           _sellingPriceController.addListener(_calculateOnChange);
 
           _resultMessage = 'You should sell for ${_formatPriceValue(sellingPrice)} $_sellingPriceCurrency to get ${_formatMarginValue(margin)}% margin';
         });
       } else {
-        _sellingPriceController.text = _formatPriceValue(sellingPrice);
+        _sellingPriceController.text = sellingPrice.toString();
       }
     } catch (e) {
       setState(() {
@@ -221,7 +224,7 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
     return double.parse(value.replaceAll(',', '.'));
   }
 
-  // Format price value with two decimal places
+  // Format price value with two decimal places - used only for display in result message, not for input fields
   String _formatPriceValue(double value) {
     return value.toStringAsFixed(2);
   }
