@@ -36,6 +36,9 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
   // Flag to prevent auto-recalculation when user is clearing fields
   bool _isSellingPriceBeingCleared = false;
 
+  // Add a flag to track when margin is being edited
+  bool _isMarginBeingEdited = false;
+
   @override
   void initState() {
     super.initState();
@@ -68,27 +71,26 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
 
   // Real-time calculation based on which fields have values
   void _calculateOnChange() {
-    // If selling price is being cleared, don't recalculate
-    if (_isSellingPriceBeingCleared) {
-      return;
-    }
-
     // Skip calculation if bought price is empty
     if (!_boughtPriceController.text.isNotEmpty) {
       return;
     }
 
     // Case 1: Calculate selling price if we have bought price and margin
+    // Only if not actively clearing or editing selling price
     if (_boughtPriceController.text.isNotEmpty &&
         _marginController.text.isNotEmpty &&
-        _sellingPriceController.text.isEmpty &&
-        !_sellingPriceFocus.hasFocus) {
+        (!_sellingPriceFocus.hasFocus || _isMarginBeingEdited) &&
+        !_isSellingPriceBeingCleared) {
       _calculateSellingPrice(updateUI: true);
     }
     // Case 2: Calculate margin if we have bought price and selling price
+    // Only if margin is not being actively edited
     else if (_boughtPriceController.text.isNotEmpty &&
-             _sellingPriceController.text.isNotEmpty) {
-      // Only calculate margin - never auto-fill selling price
+             _sellingPriceController.text.isNotEmpty &&
+             !_marginFocus.hasFocus &&
+             !_isMarginBeingEdited) {
+      // Always calculate margin when both prices are available
       _calculateMargin(updateUI: true);
     }
   }
@@ -464,10 +466,12 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
                                   onChanged: (value) {
                                     // If the field is being cleared
                                     if (value.isEmpty) {
-                                      // Set flag to prevent recalculation
-                                      _isSellingPriceBeingCleared = true;
+                                      // Set flag to prevent selling price recalculation
+                                      setState(() {
+                                        _isSellingPriceBeingCleared = true;
+                                      });
 
-                                      // Also clear margin to prevent auto-recalculation
+                                      // Clear margin to prevent auto-recalculation of selling price
                                       _marginController.removeListener(_calculateOnChange);
                                       _marginController.text = '';
                                       _marginController.addListener(_calculateOnChange);
@@ -478,11 +482,16 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
                                           _isSellingPriceBeingCleared = false;
                                         });
                                       });
+                                    } else {
+                                      // When value is not empty, always calculate margin
+                                      if (_boughtPriceController.text.isNotEmpty) {
+                                        _calculateMargin(updateUI: true);
+                                      }
                                     }
                                   },
                                   // Add focus listeners to handle focus state
                                   onTap: () {
-                                    // When field gets focus, disable auto-calculation
+                                    // When field gets focus, disable auto-filling selling price
                                     setState(() {
                                       _isSellingPriceBeingCleared = true;
                                     });
@@ -580,6 +589,38 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
                                 return oldValue;
                               }),
                             ],
+                            onChanged: (value) {
+                              // If margin is changed, recalculate selling price
+                              if (_boughtPriceController.text.isNotEmpty && value.isNotEmpty) {
+                                setState(() {
+                                  _isMarginBeingEdited = true;
+                                });
+                                _calculateSellingPrice(updateUI: true);
+
+                                // Reset flag after a short delay
+                                Future.delayed(const Duration(milliseconds: 100), () {
+                                  setState(() {
+                                    _isMarginBeingEdited = false;
+                                  });
+                                });
+                              }
+                            },
+                            // Add focus listeners to handle focus state
+                            onTap: () {
+                              // When margin field gets focus, mark it as being edited
+                              setState(() {
+                                _isMarginBeingEdited = true;
+                              });
+                            },
+                            onEditingComplete: () {
+                              // Re-enable calculations when done editing
+                              setState(() {
+                                _isMarginBeingEdited = false;
+                              });
+                              if (_boughtPriceController.text.isNotEmpty && _marginController.text.isNotEmpty) {
+                                _calculateSellingPrice(updateUI: true);
+                              }
+                            },
                           ),
                         ),
                       ],
