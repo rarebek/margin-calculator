@@ -45,16 +45,16 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
 
     // Add listeners to all text controllers for real-time calculations
     _boughtPriceController.addListener(_calculateOnChange);
-    _sellingPriceController.addListener(_calculateOnChange);
-    _marginController.addListener(_calculateOnChange);
+    _sellingPriceController.addListener(_onSellingPriceChanged);
+    _marginController.addListener(_onMarginChanged);
   }
 
   @override
   void dispose() {
     // Remove listeners
     _boughtPriceController.removeListener(_calculateOnChange);
-    _sellingPriceController.removeListener(_calculateOnChange);
-    _marginController.removeListener(_calculateOnChange);
+    _sellingPriceController.removeListener(_onSellingPriceChanged);
+    _marginController.removeListener(_onMarginChanged);
 
     // Dispose controllers
     _boughtPriceController.dispose();
@@ -67,6 +67,26 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
     _marginFocus.dispose();
 
     super.dispose();
+  }
+
+  // Handler for selling price changes
+  void _onSellingPriceChanged() {
+    // When selling price is not empty, disable margin field
+    setState(() {
+      // Calculate margin value but keep the priority on selling price
+    });
+
+    _calculateOnChange();
+  }
+
+  // Handler for margin changes
+  void _onMarginChanged() {
+    // When margin is not empty, disable selling price field
+    setState(() {
+      // Calculate selling price but keep the priority on margin
+    });
+
+    _calculateOnChange();
   }
 
   // Real-time calculation based on which fields have values
@@ -443,6 +463,7 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
                                 child: TextField(
                                   controller: _sellingPriceController,
                                   focusNode: _sellingPriceFocus,
+                                  enabled: _marginController.text.isEmpty,
                                   decoration: const InputDecoration(
                                     labelText: 'Selling Price',
                                     border: OutlineInputBorder(),
@@ -476,9 +497,9 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
                                       });
 
                                       // Clear margin to prevent auto-recalculation of selling price
-                                      _marginController.removeListener(_calculateOnChange);
+                                      _marginController.removeListener(_onMarginChanged);
                                       _marginController.text = '';
-                                      _marginController.addListener(_calculateOnChange);
+                                      _marginController.addListener(_onMarginChanged);
 
                                       // Reset flag after a short delay to allow for emptying
                                       Future.delayed(const Duration(milliseconds: 100), () {
@@ -569,6 +590,7 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
                           child: TextField(
                             controller: _marginController,
                             focusNode: _marginFocus,
+                            enabled: _sellingPriceController.text.isEmpty,
                             decoration: const InputDecoration(
                               labelText: 'Margin (%)',
                               border: OutlineInputBorder(),
@@ -614,9 +636,9 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
                                   _isSellingPriceBeingCleared = true;
 
                                   // Clear selling price field
-                                  _sellingPriceController.removeListener(_calculateOnChange);
+                                  _sellingPriceController.removeListener(_onSellingPriceChanged);
                                   _sellingPriceController.text = '';
-                                  _sellingPriceController.addListener(_calculateOnChange);
+                                  _sellingPriceController.addListener(_onSellingPriceChanged);
 
                                   // Reset the flag after clearing
                                   Future.delayed(const Duration(milliseconds: 100), () {
