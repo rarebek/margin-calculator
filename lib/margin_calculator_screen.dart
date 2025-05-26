@@ -463,7 +463,7 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
                                 child: TextField(
                                   controller: _sellingPriceController,
                                   focusNode: _sellingPriceFocus,
-                                  enabled: _marginController.text.isEmpty,
+                                  enabled: true, // Always enabled - user should be able to type here
                                   decoration: const InputDecoration(
                                     labelText: 'Selling Price',
                                     border: OutlineInputBorder(),
@@ -590,7 +590,7 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
                           child: TextField(
                             controller: _marginController,
                             focusNode: _marginFocus,
-                            enabled: _sellingPriceController.text.isEmpty,
+                            enabled: _sellingPriceController.text.isEmpty, // Only disabled when selling price has a value
                             decoration: const InputDecoration(
                               labelText: 'Margin (%)',
                               border: OutlineInputBorder(),
