@@ -102,8 +102,9 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
     }
 
     try {
-      double boughtPrice = double.parse(_boughtPriceController.text);
-      double margin = double.parse(_marginController.text);
+      // Parse values handling both dot and comma as decimal separator
+      double boughtPrice = _parseDouble(_boughtPriceController.text);
+      double margin = _parseDouble(_marginController.text);
 
       if (boughtPrice <= 0) {
         setState(() {
@@ -128,13 +129,13 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
         setState(() {
           // Don't trigger the listener to avoid infinite loop
           _sellingPriceController.removeListener(_calculateOnChange);
-          _sellingPriceController.text = sellingPrice.toStringAsFixed(2);
+          _sellingPriceController.text = _formatPriceValue(sellingPrice);
           _sellingPriceController.addListener(_calculateOnChange);
 
-          _resultMessage = 'You should sell for ${sellingPrice.toStringAsFixed(2)} $_sellingPriceCurrency to get $margin% margin';
+          _resultMessage = 'You should sell for ${_formatPriceValue(sellingPrice)} $_sellingPriceCurrency to get ${_formatMarginValue(margin)}% margin';
         });
       } else {
-        _sellingPriceController.text = sellingPrice.toStringAsFixed(2);
+        _sellingPriceController.text = _formatPriceValue(sellingPrice);
       }
     } catch (e) {
       setState(() {
@@ -153,8 +154,9 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
     }
 
     try {
-      double boughtPrice = double.parse(_boughtPriceController.text);
-      double sellingPrice = double.parse(_sellingPriceController.text);
+      // Parse values handling both dot and comma as decimal separator
+      double boughtPrice = _parseDouble(_boughtPriceController.text);
+      double sellingPrice = _parseDouble(_sellingPriceController.text);
 
       if (boughtPrice <= 0) {
         setState(() {
@@ -186,13 +188,13 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
         setState(() {
           // Don't trigger the listener to avoid infinite loop
           _marginController.removeListener(_calculateOnChange);
-          _marginController.text = margin.toStringAsFixed(2);
+          _marginController.text = _formatMarginValue(margin);
           _marginController.addListener(_calculateOnChange);
 
-          _resultMessage = 'Your margin is ${margin.toStringAsFixed(2)}%';
+          _resultMessage = 'Your margin is ${_formatMarginValue(margin)}%';
         });
       } else {
-        _marginController.text = margin.toStringAsFixed(2);
+        _marginController.text = _formatMarginValue(margin);
       }
     } catch (e) {
       setState(() {
@@ -201,11 +203,94 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
     }
   }
 
+  // Parse double value from string, handling both dot and comma as decimal separators
+  double _parseDouble(String value) {
+    // Replace comma with dot if present, then parse
+    return double.parse(value.replaceAll(',', '.'));
+  }
+
+  // Format price value with two decimal places
+  String _formatPriceValue(double value) {
+    return value.toStringAsFixed(2);
+  }
+
+  // Format margin value (no automatic decimal places)
+  String _formatMarginValue(double value) {
+    // Remove trailing zeros after decimal point
+    String formatted = value.toString();
+    if (formatted.contains('.')) {
+      // Remove trailing zeros
+      formatted = formatted.replaceAll(RegExp(r'0+$'), '');
+      // Remove the decimal point if it's the last character
+      formatted = formatted.replaceAll(RegExp(r'\.$'), '');
+    }
+    return formatted;
+  }
+
   // Clear all focus to dismiss keyboard
   void _unfocusAll() {
     _boughtPriceFocus.unfocus();
     _sellingPriceFocus.unfocus();
     _marginFocus.unfocus();
+  }
+
+  // Handle special key events for price inputs
+  void _handlePriceKeyEvent(RawKeyEvent event, TextEditingController controller) {
+    if (event is RawKeyDownEvent) {
+      // Check if comma key was pressed
+      if (event.logicalKey == LogicalKeyboardKey.comma) {
+        // Get current text and cursor position
+        final text = controller.text;
+        final cursorPos = controller.selection.start;
+
+        // If text doesn't contain a dot, add it
+        if (!text.contains('.')) {
+          final newText = text + '.';
+          controller.text = newText;
+          // Move cursor after the dot
+          controller.selection = TextSelection.fromPosition(
+            TextPosition(offset: newText.length)
+          );
+        } else {
+          // If text already has a dot, move cursor after it
+          final dotIndex = text.indexOf('.');
+          controller.selection = TextSelection.fromPosition(
+            TextPosition(offset: dotIndex + 1)
+          );
+        }
+      }
+    }
+  }
+
+  // Handle special key events for margin input
+  void _handleMarginKeyEvent(RawKeyEvent event, TextEditingController controller) {
+    if (event is RawKeyDownEvent) {
+      // Check if comma key was pressed
+      if (event.logicalKey == LogicalKeyboardKey.comma) {
+        // Get current text and cursor position
+        final text = controller.text;
+        final cursorPos = controller.selection.start;
+
+        // If text doesn't contain a dot, insert it at cursor position
+        if (!text.contains('.')) {
+          final beforeCursor = text.substring(0, cursorPos);
+          final afterCursor = text.substring(cursorPos);
+          final newText = beforeCursor + '.' + afterCursor;
+
+          controller.text = newText;
+          // Move cursor after the dot
+          controller.selection = TextSelection.fromPosition(
+            TextPosition(offset: cursorPos + 1)
+          );
+        } else {
+          // If text already has a dot, move cursor after it
+          final dotIndex = text.indexOf('.');
+          controller.selection = TextSelection.fromPosition(
+            TextPosition(offset: dotIndex + 1)
+          );
+        }
+      }
+    }
   }
 
   @override
@@ -245,18 +330,62 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
                           children: [
                             Expanded(
                               flex: 7,
-                              child: TextField(
-                                controller: _boughtPriceController,
-                                focusNode: _boughtPriceFocus,
-                                decoration: const InputDecoration(
-                                  labelText: 'Bought Price',
-                                  border: OutlineInputBorder(),
-                                  suffixIcon: Icon(Icons.price_change),
+                              child: RawKeyboardListener(
+                                focusNode: FocusNode(),
+                                onKey: (event) => _handlePriceKeyEvent(event, _boughtPriceController),
+                                child: TextField(
+                                  controller: _boughtPriceController,
+                                  focusNode: _boughtPriceFocus,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Bought Price',
+                                    border: OutlineInputBorder(),
+                                    suffixIcon: Icon(Icons.price_change),
+                                  ),
+                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                  inputFormatters: [
+                                    // Only allow digits and at most one decimal point
+                                    TextInputFormatter.withFunction((oldValue, newValue) {
+                                      // Allow empty string for clearing
+                                      if (newValue.text.isEmpty) {
+                                        return newValue;
+                                      }
+
+                                      // Replace comma with dot
+                                      String text = newValue.text.replaceAll(',', '.');
+
+                                      // Check if valid number format
+                                      if (RegExp(r'^\d*\.?\d*$').hasMatch(text)) {
+                                        return newValue.copyWith(text: text);
+                                      }
+                                      return oldValue;
+                                    }),
+                                  ],
+                                  onChanged: (value) {
+                                    // Skip if empty
+                                    if (value.isEmpty) {
+                                      return;
+                                    }
+
+                                    // Add dot and zeros if needed, but avoid recursion
+                                    if (!value.contains('.') &&
+                                        value.isNotEmpty &&
+                                        _boughtPriceFocus.hasFocus) {
+                                      // Save cursor position
+                                      final cursorPos = _boughtPriceController.selection.baseOffset;
+
+                                      // Add .00 only if user is done typing the integer part
+                                      // and has moved cursor to the end
+                                      if (cursorPos == value.length) {
+                                        _boughtPriceController.removeListener(_calculateOnChange);
+                                        _boughtPriceController.text = value + '.00';
+                                        _boughtPriceController.selection = TextSelection.fromPosition(
+                                          TextPosition(offset: value.length + 1)
+                                        );
+                                        _boughtPriceController.addListener(_calculateOnChange);
+                                      }
+                                    }
+                                  },
                                 ),
-                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
-                                ],
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -296,18 +425,62 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
                           children: [
                             Expanded(
                               flex: 7,
-                              child: TextField(
-                                controller: _sellingPriceController,
-                                focusNode: _sellingPriceFocus,
-                                decoration: const InputDecoration(
-                                  labelText: 'Selling Price',
-                                  border: OutlineInputBorder(),
-                                  suffixIcon: Icon(Icons.attach_money),
+                              child: RawKeyboardListener(
+                                focusNode: FocusNode(),
+                                onKey: (event) => _handlePriceKeyEvent(event, _sellingPriceController),
+                                child: TextField(
+                                  controller: _sellingPriceController,
+                                  focusNode: _sellingPriceFocus,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Selling Price',
+                                    border: OutlineInputBorder(),
+                                    suffixIcon: Icon(Icons.attach_money),
+                                  ),
+                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                  inputFormatters: [
+                                    // Only allow digits and at most one decimal point
+                                    TextInputFormatter.withFunction((oldValue, newValue) {
+                                      // Allow empty string for clearing
+                                      if (newValue.text.isEmpty) {
+                                        return newValue;
+                                      }
+
+                                      // Replace comma with dot
+                                      String text = newValue.text.replaceAll(',', '.');
+
+                                      // Check if valid number format
+                                      if (RegExp(r'^\d*\.?\d*$').hasMatch(text)) {
+                                        return newValue.copyWith(text: text);
+                                      }
+                                      return oldValue;
+                                    }),
+                                  ],
+                                  onChanged: (value) {
+                                    // Skip if empty
+                                    if (value.isEmpty) {
+                                      return;
+                                    }
+
+                                    // Add dot and zeros if needed, but avoid recursion
+                                    if (!value.contains('.') &&
+                                        value.isNotEmpty &&
+                                        _sellingPriceFocus.hasFocus) {
+                                      // Save cursor position
+                                      final cursorPos = _sellingPriceController.selection.baseOffset;
+
+                                      // Add .00 only if user is done typing the integer part
+                                      // and has moved cursor to the end
+                                      if (cursorPos == value.length) {
+                                        _sellingPriceController.removeListener(_calculateOnChange);
+                                        _sellingPriceController.text = value + '.00';
+                                        _sellingPriceController.selection = TextSelection.fromPosition(
+                                          TextPosition(offset: value.length + 1)
+                                        );
+                                        _sellingPriceController.addListener(_calculateOnChange);
+                                      }
+                                    }
+                                  },
                                 ),
-                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
-                                ],
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -342,18 +515,37 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
                         const SizedBox(height: 16),
 
                         // Margin Input
-                        TextField(
-                          controller: _marginController,
-                          focusNode: _marginFocus,
-                          decoration: const InputDecoration(
-                            labelText: 'Margin (%)',
-                            border: OutlineInputBorder(),
-                            suffixIcon: Icon(Icons.percent),
+                        RawKeyboardListener(
+                          focusNode: FocusNode(),
+                          onKey: (event) => _handleMarginKeyEvent(event, _marginController),
+                          child: TextField(
+                            controller: _marginController,
+                            focusNode: _marginFocus,
+                            decoration: const InputDecoration(
+                              labelText: 'Margin (%)',
+                              border: OutlineInputBorder(),
+                              suffixIcon: Icon(Icons.percent),
+                            ),
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            inputFormatters: [
+                              // Only allow digits and at most one decimal point
+                              TextInputFormatter.withFunction((oldValue, newValue) {
+                                // Allow empty string for clearing
+                                if (newValue.text.isEmpty) {
+                                  return newValue;
+                                }
+
+                                // Replace comma with dot
+                                String text = newValue.text.replaceAll(',', '.');
+
+                                // Check if valid number format
+                                if (RegExp(r'^\d*\.?\d*$').hasMatch(text)) {
+                                  return newValue.copyWith(text: text);
+                                }
+                                return oldValue;
+                              }),
+                            ],
                           ),
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          inputFormatters: [
-                            FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
-                          ],
                         ),
                       ],
                     ),
