@@ -360,31 +360,6 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
                                       return oldValue;
                                     }),
                                   ],
-                                  onChanged: (value) {
-                                    // Skip if empty
-                                    if (value.isEmpty) {
-                                      return;
-                                    }
-
-                                    // Add dot and zeros if needed, but avoid recursion
-                                    if (!value.contains('.') &&
-                                        value.isNotEmpty &&
-                                        _boughtPriceFocus.hasFocus) {
-                                      // Save cursor position
-                                      final cursorPos = _boughtPriceController.selection.baseOffset;
-
-                                      // Add .00 only if user is done typing the integer part
-                                      // and has moved cursor to the end
-                                      if (cursorPos == value.length) {
-                                        _boughtPriceController.removeListener(_calculateOnChange);
-                                        _boughtPriceController.text = value + '.00';
-                                        _boughtPriceController.selection = TextSelection.fromPosition(
-                                          TextPosition(offset: value.length + 1)
-                                        );
-                                        _boughtPriceController.addListener(_calculateOnChange);
-                                      }
-                                    }
-                                  },
                                 ),
                               ),
                             ),
@@ -455,31 +430,6 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
                                       return oldValue;
                                     }),
                                   ],
-                                  onChanged: (value) {
-                                    // Skip if empty
-                                    if (value.isEmpty) {
-                                      return;
-                                    }
-
-                                    // Add dot and zeros if needed, but avoid recursion
-                                    if (!value.contains('.') &&
-                                        value.isNotEmpty &&
-                                        _sellingPriceFocus.hasFocus) {
-                                      // Save cursor position
-                                      final cursorPos = _sellingPriceController.selection.baseOffset;
-
-                                      // Add .00 only if user is done typing the integer part
-                                      // and has moved cursor to the end
-                                      if (cursorPos == value.length) {
-                                        _sellingPriceController.removeListener(_calculateOnChange);
-                                        _sellingPriceController.text = value + '.00';
-                                        _sellingPriceController.selection = TextSelection.fromPosition(
-                                          TextPosition(offset: value.length + 1)
-                                        );
-                                        _sellingPriceController.addListener(_calculateOnChange);
-                                      }
-                                    }
-                                  },
                                 ),
                               ),
                             ),
