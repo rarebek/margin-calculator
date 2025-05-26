@@ -607,6 +607,22 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
                                     _isMarginBeingEdited = false;
                                   });
                                 });
+                              } else if (value.isEmpty) {
+                                // If margin is deleted, also clear selling price
+                                setState(() {
+                                  // Prevent recalculation while clearing
+                                  _isSellingPriceBeingCleared = true;
+
+                                  // Clear selling price field
+                                  _sellingPriceController.removeListener(_calculateOnChange);
+                                  _sellingPriceController.text = '';
+                                  _sellingPriceController.addListener(_calculateOnChange);
+
+                                  // Reset the flag after clearing
+                                  Future.delayed(const Duration(milliseconds: 100), () {
+                                    _isSellingPriceBeingCleared = false;
+                                  });
+                                });
                               }
                             },
                             // Add focus listeners to handle focus state
