@@ -383,6 +383,27 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
                                 onChanged: (String? newCurrency) {
                                   if (newCurrency != null && newCurrency != _boughtPriceCurrency) {
                                     setState(() {
+                                      // Save current value
+                                      if (_boughtPriceController.text.isNotEmpty) {
+                                        try {
+                                          double currentValue = _parseDouble(_boughtPriceController.text);
+
+                                          // Convert from current currency to new currency
+                                          double convertedValue = _convertCurrency(
+                                            currentValue,
+                                            _boughtPriceCurrency,
+                                            newCurrency
+                                          );
+
+                                          // Update controller with converted value
+                                          _boughtPriceController.removeListener(_calculateOnChange);
+                                          _boughtPriceController.text = _formatPriceValue(convertedValue);
+                                          _boughtPriceController.addListener(_calculateOnChange);
+                                        } catch (e) {
+                                          // If parsing fails, keep the field as is
+                                        }
+                                      }
+
                                       _boughtPriceCurrency = newCurrency;
                                     });
                                     _calculateOnChange();
@@ -462,6 +483,27 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
                                 onChanged: (String? newCurrency) {
                                   if (newCurrency != null && newCurrency != _sellingPriceCurrency) {
                                     setState(() {
+                                      // Save current value
+                                      if (_sellingPriceController.text.isNotEmpty) {
+                                        try {
+                                          double currentValue = _parseDouble(_sellingPriceController.text);
+
+                                          // Convert from current currency to new currency
+                                          double convertedValue = _convertCurrency(
+                                            currentValue,
+                                            _sellingPriceCurrency,
+                                            newCurrency
+                                          );
+
+                                          // Update controller with converted value
+                                          _sellingPriceController.removeListener(_calculateOnChange);
+                                          _sellingPriceController.text = _formatPriceValue(convertedValue);
+                                          _sellingPriceController.addListener(_calculateOnChange);
+                                        } catch (e) {
+                                          // If parsing fails, keep the field as is
+                                        }
+                                      }
+
                                       _sellingPriceCurrency = newCurrency;
                                     });
                                     _calculateOnChange();
