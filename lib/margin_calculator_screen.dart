@@ -33,6 +33,9 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
   final FocusNode _sellingPriceFocus = FocusNode();
   final FocusNode _marginFocus = FocusNode();
 
+  // Flag to prevent auto-recalculation when user is clearing fields
+  bool _isSellingPriceBeingCleared = false;
+
   @override
   void initState() {
     super.initState();
@@ -65,7 +68,12 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
 
   // Real-time calculation based on which fields have values
   void _calculateOnChange() {
-    // Skip calculation if any text change is in progress or text is empty
+    // If selling price is being cleared, don't recalculate
+    if (_isSellingPriceBeingCleared) {
+      return;
+    }
+
+    // Skip calculation if bought price is empty
     if (!_boughtPriceController.text.isNotEmpty) {
       return;
     }
@@ -73,7 +81,8 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
     // Case 1: Calculate selling price if we have bought price and margin
     if (_boughtPriceController.text.isNotEmpty &&
         _marginController.text.isNotEmpty &&
-        _sellingPriceController.text.isEmpty) {
+        _sellingPriceController.text.isEmpty &&
+        !_sellingPriceFocus.hasFocus) {
       _calculateSellingPrice(updateUI: true);
     }
     // Case 2: Calculate margin if we have bought price and selling price
@@ -453,13 +462,37 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
                                     }),
                                   ],
                                   onChanged: (value) {
-                                    // If the field is being cleared, we need to clear the margin as well
-                                    // to prevent auto-recalculation of selling price
+                                    // If the field is being cleared
                                     if (value.isEmpty) {
+                                      // Set flag to prevent recalculation
+                                      _isSellingPriceBeingCleared = true;
+
+                                      // Also clear margin to prevent auto-recalculation
                                       _marginController.removeListener(_calculateOnChange);
                                       _marginController.text = '';
                                       _marginController.addListener(_calculateOnChange);
+
+                                      // Reset flag after a short delay to allow for emptying
+                                      Future.delayed(const Duration(milliseconds: 100), () {
+                                        setState(() {
+                                          _isSellingPriceBeingCleared = false;
+                                        });
+                                      });
                                     }
+                                  },
+                                  // Add focus listeners to handle focus state
+                                  onTap: () {
+                                    // When field gets focus, disable auto-calculation
+                                    setState(() {
+                                      _isSellingPriceBeingCleared = true;
+                                    });
+                                  },
+                                  onEditingComplete: () {
+                                    // Re-enable calculations when done editing
+                                    setState(() {
+                                      _isSellingPriceBeingCleared = false;
+                                    });
+                                    _calculateOnChange();
                                   },
                                 ),
                               ),
