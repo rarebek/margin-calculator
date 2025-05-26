@@ -125,6 +125,13 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
         return;
       }
 
+      if (margin >= 100) {
+        setState(() {
+          _resultMessage = 'Margin must be less than 100%';
+        });
+        return;
+      }
+
       // Convert bought price to selling price currency if needed
       if (_boughtPriceCurrency != _sellingPriceCurrency) {
         boughtPrice = _convertCurrency(
@@ -134,8 +141,8 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
         );
       }
 
-      // Calculate selling price: boughtPrice + (boughtPrice * margin / 100)
-      double sellingPrice = boughtPrice * (1 + margin / 100);
+      // Updated formula: sellingPrice = (boughtPrice * 100) / (100 - margin)
+      double sellingPrice = (boughtPrice * 100) / (100 - margin);
 
       if (updateUI) {
         setState(() {
@@ -196,8 +203,8 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
         );
       }
 
-      // Calculate margin: ((sellingPrice - boughtPrice) / boughtPrice) * 100
-      double margin = ((sellingPrice - boughtPrice) / boughtPrice) * 100;
+      // Updated formula: margin = (sellingPrice - boughtPrice) / sellingPrice * 100
+      double margin = (sellingPrice - boughtPrice) / sellingPrice * 100;
 
       if (updateUI) {
         setState(() {
