@@ -73,7 +73,8 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
   void _onSellingPriceChanged() {
     // When selling price is not empty, disable margin field
     setState(() {
-      // Calculate margin value but keep the priority on selling price
+      // Keep margin field disabled if selling price has a value
+      // This will be handled by the enabled property in the TextField
     });
 
     _calculateOnChange();
@@ -83,7 +84,8 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
   void _onMarginChanged() {
     // When margin is not empty, disable selling price field
     setState(() {
-      // Calculate selling price but keep the priority on margin
+      // Keep selling price field disabled if margin has a value
+      // This will be handled by the enabled property in the TextField
     });
 
     _calculateOnChange();
@@ -489,6 +491,9 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
                                     }),
                                   ],
                                   onChanged: (value) {
+                                    // Trigger UI update to ensure margin is properly enabled/disabled
+                                    setState(() {});
+
                                     // If the field is being cleared
                                     if (value.isEmpty) {
                                       // Set flag to prevent selling price recalculation
@@ -590,7 +595,7 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
                           child: TextField(
                             controller: _marginController,
                             focusNode: _marginFocus,
-                            enabled: true, // Always enabled - user should be able to type here
+                            enabled: _sellingPriceController.text.isEmpty, // Disable when selling price has a value
                             decoration: const InputDecoration(
                               labelText: 'Margin (%)',
                               border: OutlineInputBorder(),
@@ -616,6 +621,9 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
                               }),
                             ],
                             onChanged: (value) {
+                              // Trigger UI update to ensure selling price is properly enabled/disabled
+                              setState(() {});
+
                               // If margin is changed, recalculate selling price
                               if (_boughtPriceController.text.isNotEmpty && value.isNotEmpty) {
                                 setState(() {
