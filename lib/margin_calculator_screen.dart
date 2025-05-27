@@ -468,7 +468,8 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
                                     child: TextField(
                                       controller: _sellingPriceController,
                                       focusNode: _sellingPriceFocus,
-                                      enabled: _marginController.text.isEmpty, // Disabled when margin has a value
+                                      // Only disable after user has finished editing margin
+                                      enabled: _marginFocus.hasFocus || _marginController.text.isEmpty,
                                       decoration: const InputDecoration(
                                         labelText: 'Selling Price',
                                         border: OutlineInputBorder(),
@@ -494,46 +495,34 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
                                         }),
                                       ],
                                       onChanged: (value) {
-                                        // Trigger UI update to ensure margin is properly enabled/disabled
-                                        setState(() {});
-
                                         // If the field is being cleared
                                         if (value.isEmpty) {
-                                          // Set flag to prevent selling price recalculation
-                                          setState(() {
-                                            _isSellingPriceBeingCleared = true;
-                                          });
-
                                           // Clear margin to prevent auto-recalculation of selling price
                                           _marginController.removeListener(_onMarginChanged);
                                           _marginController.text = '';
                                           _marginController.addListener(_onMarginChanged);
-
-                                          // Reset flag after a short delay to allow for emptying
-                                          Future.delayed(const Duration(milliseconds: 100), () {
-                                            setState(() {
-                                              _isSellingPriceBeingCleared = false;
-                                            });
-                                          });
                                         }
-                                        // Don't calculate margin while typing, move this to onEditingComplete instead
                                       },
                                       // Add focus listeners to handle focus state
                                       onTap: () {
-                                        // When field gets focus, disable auto-filling selling price
+                                        // When field gets focus, mark it as active
                                         setState(() {
-                                          _isSellingPriceBeingCleared = true;
+                                          // If there's content in the margin field and user wants to edit selling price,
+                                          // clear the margin field
+                                          if (_marginController.text.isNotEmpty) {
+                                            _marginController.removeListener(_onMarginChanged);
+                                            _marginController.text = '';
+                                            _marginController.addListener(_onMarginChanged);
+                                          }
+                                          _isSellingPriceBeingCleared = false;
                                         });
                                       },
                                       onEditingComplete: () {
-                                        // Re-enable calculations when done editing
-                                        setState(() {
-                                          _isSellingPriceBeingCleared = false;
-                                        });
                                         // Calculate margin when done typing
                                         if (_boughtPriceController.text.isNotEmpty && _sellingPriceController.text.isNotEmpty) {
                                           _calculateMargin(updateUI: true);
                                         }
+                                        setState(() {}); // Update UI to refresh enabled states
                                       },
                                     ),
                                   ),
@@ -616,7 +605,8 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
                               child: TextField(
                                 controller: _marginController,
                                 focusNode: _marginFocus,
-                                enabled: _sellingPriceController.text.isEmpty, // Disable when selling price has a value
+                                // Only disable after user has finished editing selling price
+                                enabled: _sellingPriceFocus.hasFocus || _sellingPriceController.text.isEmpty,
                                 decoration: const InputDecoration(
                                   labelText: 'Margin (%)',
                                   border: OutlineInputBorder(),
@@ -642,50 +632,36 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
                                   }),
                                 ],
                                 onChanged: (value) {
-                                  // Trigger UI update to ensure selling price is properly enabled/disabled
-                                  setState(() {});
-
-                                  // Only handle emptying the field, delay calculation until editing is complete
+                                  // If the field is being cleared
                                   if (value.isEmpty) {
-                                    // If margin is deleted, also clear selling price
-                                    setState(() {
-                                      // Prevent recalculation while clearing
-                                      _isSellingPriceBeingCleared = true;
-
-                                      // Clear selling price field
-                                      _sellingPriceController.removeListener(_onSellingPriceChanged);
-                                      _sellingPriceController.text = '';
-                                      _sellingPriceController.addListener(_onSellingPriceChanged);
-
-                                      // Reset the flag after clearing
-                                      Future.delayed(const Duration(milliseconds: 100), () {
-                                        _isSellingPriceBeingCleared = false;
-                                      });
-                                    });
+                                    // Clear selling price to prevent auto-recalculation of margin
+                                    _sellingPriceController.removeListener(_onSellingPriceChanged);
+                                    _sellingPriceController.text = '';
+                                    _sellingPriceController.addListener(_onSellingPriceChanged);
                                   }
                                 },
                                 // Add focus listeners to handle focus state
                                 onTap: () {
-                                  // When margin field gets focus, mark it as being edited
+                                  // When margin field gets focus, mark it as active
                                   setState(() {
+                                    // If there's content in the selling price field and user wants to edit margin,
+                                    // clear the selling price field
+                                    if (_sellingPriceController.text.isNotEmpty) {
+                                      _sellingPriceController.removeListener(_onSellingPriceChanged);
+                                      _sellingPriceController.text = '';
+                                      _sellingPriceController.addListener(_onSellingPriceChanged);
+                                    }
                                     _isMarginBeingEdited = true;
                                   });
                                 },
                                 onEditingComplete: () {
-                                  // Re-enable calculations when done editing
-                                  setState(() {
-                                    _isMarginBeingEdited = true;  // Set to true briefly for calculation
-                                  });
-
                                   // Calculate selling price when done typing
                                   if (_boughtPriceController.text.isNotEmpty && _marginController.text.isNotEmpty) {
                                     _calculateSellingPrice(updateUI: true);
                                   }
-
-                                  // Reset flag after calculation
                                   setState(() {
                                     _isMarginBeingEdited = false;
-                                  });
+                                  }); // Update UI to refresh enabled states
                                 },
                               ),
                             ),
