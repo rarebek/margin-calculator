@@ -454,215 +454,192 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
                         const SizedBox(height: 16),
 
                         // Selling Price Input with Currency
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(
-                                  flex: 7,
-                                  child: RawKeyboardListener(
-                                    focusNode: FocusNode(),
-                                    onKey: (event) => _handlePriceKeyEvent(event, _sellingPriceController),
-                                    child: TextField(
-                                      controller: _sellingPriceController,
-                                      focusNode: _sellingPriceFocus,
-                                      // Only disable after user has finished editing margin
-                                      enabled: _marginFocus.hasFocus || _marginController.text.isEmpty,
-                                      decoration: const InputDecoration(
-                                        labelText: 'Selling Price',
-                                        border: OutlineInputBorder(),
-                                        suffixIcon: Icon(Icons.attach_money),
-                                      ),
-                                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                      inputFormatters: [
-                                        // Only allow digits and at most one decimal point
-                                        TextInputFormatter.withFunction((oldValue, newValue) {
-                                          // Allow empty string for clearing
-                                          if (newValue.text.isEmpty) {
-                                            return newValue;
-                                          }
-
-                                          // Replace comma with dot
-                                          String text = newValue.text.replaceAll(',', '.');
-
-                                          // Check if valid number format
-                                          if (RegExp(r'^\d*\.?\d*$').hasMatch(text)) {
-                                            return newValue.copyWith(text: text);
-                                          }
-                                          return oldValue;
-                                        }),
-                                      ],
-                                      onChanged: (value) {
-                                        // If the field is being cleared
-                                        if (value.isEmpty) {
-                                          // Clear margin to prevent auto-recalculation of selling price
-                                          _marginController.removeListener(_onMarginChanged);
-                                          _marginController.text = '';
-                                          _marginController.addListener(_onMarginChanged);
-                                        }
-                                      },
-                                      // Add focus listeners to handle focus state
-                                      onTap: () {
-                                        // When field gets focus, mark it as active
-                                        setState(() {
-                                          // If there's content in the margin field and user wants to edit selling price,
-                                          // clear the margin field
-                                          if (_marginController.text.isNotEmpty) {
-                                            _marginController.removeListener(_onMarginChanged);
-                                            _marginController.text = '';
-                                            _marginController.addListener(_onMarginChanged);
-                                          }
-                                          _isSellingPriceBeingCleared = false;
-                                        });
-                                      },
-                                      onEditingComplete: () {
-                                        // Calculate margin when done typing
-                                        if (_boughtPriceController.text.isNotEmpty && _sellingPriceController.text.isNotEmpty) {
-                                          _calculateMargin(updateUI: true);
-                                        }
-                                        setState(() {}); // Update UI to refresh enabled states
-                                      },
-                                    ),
+                            Expanded(
+                              flex: 7,
+                              child: RawKeyboardListener(
+                                focusNode: FocusNode(),
+                                onKey: (event) => _handlePriceKeyEvent(event, _sellingPriceController),
+                                child: TextField(
+                                  controller: _sellingPriceController,
+                                  focusNode: _sellingPriceFocus,
+                                  // Always enabled
+                                  enabled: true,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Selling Price',
+                                    border: OutlineInputBorder(),
+                                    suffixIcon: Icon(Icons.attach_money),
                                   ),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  flex: 3,
-                                  child: DropdownButtonFormField<String>(
-                                    value: _sellingPriceCurrency,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Currency',
-                                      border: OutlineInputBorder(),
-                                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                                    ),
-                                    items: _currencyRates.keys.map((String currency) {
-                                      return DropdownMenuItem<String>(
-                                        value: currency,
-                                        child: Text(currency),
-                                      );
-                                    }).toList(),
-                                    onChanged: (String? newCurrency) {
-                                      if (newCurrency != null && newCurrency != _sellingPriceCurrency) {
-                                        setState(() {
-                                          // Save current value
-                                          if (_sellingPriceController.text.isNotEmpty) {
-                                            try {
-                                              double currentValue = _parseDouble(_sellingPriceController.text);
-
-                                              // Convert from current currency to new currency
-                                              double convertedValue = _convertCurrency(
-                                                currentValue,
-                                                _sellingPriceCurrency,
-                                                newCurrency
-                                              );
-
-                                              // Update controller with converted value (no formatting)
-                                              _sellingPriceController.removeListener(_calculateOnChange);
-                                              _sellingPriceController.text = convertedValue.toString();
-                                              _sellingPriceController.addListener(_calculateOnChange);
-                                            } catch (e) {
-                                              // If parsing fails, keep the field as is
-                                            }
-                                          }
-
-                                          _sellingPriceCurrency = newCurrency;
-                                        });
-                                        _calculateOnChange();
+                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                  inputFormatters: [
+                                    // Only allow digits and at most one decimal point
+                                    TextInputFormatter.withFunction((oldValue, newValue) {
+                                      // Allow empty string for clearing
+                                      if (newValue.text.isEmpty) {
+                                        return newValue;
                                       }
-                                    },
-                                  ),
+
+                                      // Replace comma with dot
+                                      String text = newValue.text.replaceAll(',', '.');
+
+                                      // Check if valid number format
+                                      if (RegExp(r'^\d*\.?\d*$').hasMatch(text)) {
+                                        return newValue.copyWith(text: text);
+                                      }
+                                      return oldValue;
+                                    }),
+                                  ],
+                                  onChanged: (value) {
+                                    // If the field is being cleared
+                                    if (value.isEmpty) {
+                                      // Clear selling price to prevent auto-recalculation of margin
+                                      _sellingPriceController.removeListener(_onSellingPriceChanged);
+                                      _sellingPriceController.text = '';
+                                      _sellingPriceController.addListener(_onSellingPriceChanged);
+                                    } else {
+                                      // Calculate selling price in real-time
+                                      if (_boughtPriceController.text.isNotEmpty) {
+                                        _calculateSellingPrice(updateUI: true);
+                                      }
+                                    }
+                                  },
+                                  // Add focus listeners to handle focus state
+                                  onTap: () {
+                                    setState(() {
+                                      _isSellingPriceBeingCleared = false;
+                                    });
+                                  },
+                                  onEditingComplete: () {
+                                    // Calculate margin when done typing
+                                    if (_boughtPriceController.text.isNotEmpty && _sellingPriceController.text.isNotEmpty) {
+                                      _calculateMargin(updateUI: true);
+                                    }
+                                    setState(() {}); // Update UI to refresh enabled states
+                                  },
                                 ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            // Helper text for users
-                            if (_marginController.text.isNotEmpty)
-                              TextButton(
-                                onPressed: () {
-                                  setState(() {
-                                    // Clear margin to enable selling price input
-                                    _marginController.removeListener(_onMarginChanged);
-                                    _marginController.text = '';
-                                    _marginController.addListener(_onMarginChanged);
-                                  });
-                                },
-                                child: const Text('Clear margin to use selling price instead'),
                               ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              flex: 3,
+                              child: DropdownButtonFormField<String>(
+                                value: _sellingPriceCurrency,
+                                decoration: const InputDecoration(
+                                  labelText: 'Currency',
+                                  border: OutlineInputBorder(),
+                                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                                ),
+                                items: _currencyRates.keys.map((String currency) {
+                                  return DropdownMenuItem<String>(
+                                    value: currency,
+                                    child: Text(currency),
+                                  );
+                                }).toList(),
+                                onChanged: (String? newCurrency) {
+                                  if (newCurrency != null && newCurrency != _sellingPriceCurrency) {
+                                    setState(() {
+                                      // Save current value
+                                      if (_sellingPriceController.text.isNotEmpty) {
+                                        try {
+                                          double currentValue = _parseDouble(_sellingPriceController.text);
+
+                                          // Convert from current currency to new currency
+                                          double convertedValue = _convertCurrency(
+                                            currentValue,
+                                            _sellingPriceCurrency,
+                                            newCurrency
+                                          );
+
+                                          // Update controller with converted value (no formatting)
+                                          _sellingPriceController.removeListener(_calculateOnChange);
+                                          _sellingPriceController.text = convertedValue.toString();
+                                          _sellingPriceController.addListener(_calculateOnChange);
+                                        } catch (e) {
+                                          // If parsing fails, keep the field as is
+                                        }
+                                      }
+
+                                      _sellingPriceCurrency = newCurrency;
+                                    });
+                                    _calculateOnChange();
+                                  }
+                                },
+                              ),
+                            ),
                           ],
                         ),
 
                         const SizedBox(height: 16),
 
                         // Margin Input
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            RawKeyboardListener(
-                              focusNode: FocusNode(),
-                              onKey: (event) => _handleMarginKeyEvent(event, _marginController),
-                              child: TextField(
-                                controller: _marginController,
-                                focusNode: _marginFocus,
-                                // Only disable after user has finished editing selling price
-                                enabled: _sellingPriceFocus.hasFocus || _sellingPriceController.text.isEmpty,
-                                decoration: const InputDecoration(
-                                  labelText: 'Margin (%)',
-                                  border: OutlineInputBorder(),
-                                  suffixIcon: Icon(Icons.percent),
-                                ),
-                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                inputFormatters: [
-                                  // Only allow digits and at most one decimal point
-                                  TextInputFormatter.withFunction((oldValue, newValue) {
-                                    // Allow empty string for clearing
-                                    if (newValue.text.isEmpty) {
-                                      return newValue;
-                                    }
+                            Expanded(
+                              child: RawKeyboardListener(
+                                focusNode: FocusNode(),
+                                onKey: (event) => _handleMarginKeyEvent(event, _marginController),
+                                child: TextField(
+                                  controller: _marginController,
+                                  focusNode: _marginFocus,
+                                  // Always enabled
+                                  enabled: true,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Margin (%)',
+                                    border: OutlineInputBorder(),
+                                    suffixIcon: Icon(Icons.percent),
+                                  ),
+                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                  inputFormatters: [
+                                    // Only allow digits and at most one decimal point
+                                    TextInputFormatter.withFunction((oldValue, newValue) {
+                                      // Allow empty string for clearing
+                                      if (newValue.text.isEmpty) {
+                                        return newValue;
+                                      }
 
-                                    // Replace comma with dot
-                                    String text = newValue.text.replaceAll(',', '.');
+                                      // Replace comma with dot
+                                      String text = newValue.text.replaceAll(',', '.');
 
-                                    // Check if valid number format
-                                    if (RegExp(r'^\d*\.?\d*$').hasMatch(text)) {
-                                      return newValue.copyWith(text: text);
-                                    }
-                                    return oldValue;
-                                  }),
-                                ],
-                                onChanged: (value) {
-                                  // If the field is being cleared
-                                  if (value.isEmpty) {
-                                    // Clear selling price to prevent auto-recalculation of margin
-                                    _sellingPriceController.removeListener(_onSellingPriceChanged);
-                                    _sellingPriceController.text = '';
-                                    _sellingPriceController.addListener(_onSellingPriceChanged);
-                                  }
-                                },
-                                // Add focus listeners to handle focus state
-                                onTap: () {
-                                  // When margin field gets focus, mark it as active
-                                  setState(() {
-                                    // If there's content in the selling price field and user wants to edit margin,
-                                    // clear the selling price field
-                                    if (_sellingPriceController.text.isNotEmpty) {
+                                      // Check if valid number format
+                                      if (RegExp(r'^\d*\.?\d*$').hasMatch(text)) {
+                                        return newValue.copyWith(text: text);
+                                      }
+                                      return oldValue;
+                                    }),
+                                  ],
+                                  onChanged: (value) {
+                                    // If the field is being cleared
+                                    if (value.isEmpty) {
+                                      // Clear selling price to prevent auto-recalculation of margin
                                       _sellingPriceController.removeListener(_onSellingPriceChanged);
                                       _sellingPriceController.text = '';
                                       _sellingPriceController.addListener(_onSellingPriceChanged);
+                                    } else {
+                                      // Calculate margin in real-time
+                                      if (_boughtPriceController.text.isNotEmpty) {
+                                        _calculateMargin(updateUI: true);
+                                      }
                                     }
-                                    _isMarginBeingEdited = true;
-                                  });
-                                },
-                                onEditingComplete: () {
-                                  // Calculate selling price when done typing
-                                  if (_boughtPriceController.text.isNotEmpty && _marginController.text.isNotEmpty) {
-                                    _calculateSellingPrice(updateUI: true);
-                                  }
-                                  setState(() {
-                                    _isMarginBeingEdited = false;
-                                  }); // Update UI to refresh enabled states
-                                },
+                                  },
+                                  // Add focus listeners to handle focus state
+                                  onTap: () {
+                                    setState(() {
+                                      _isMarginBeingEdited = true;
+                                    });
+                                  },
+                                  onEditingComplete: () {
+                                    // Calculate selling price when done typing
+                                    if (_boughtPriceController.text.isNotEmpty && _marginController.text.isNotEmpty) {
+                                      _calculateSellingPrice(updateUI: true);
+                                    }
+                                    setState(() {
+                                      _isMarginBeingEdited = false;
+                                    }); // Update UI to refresh enabled states
+                                  },
+                                ),
                               ),
                             ),
                             const SizedBox(height: 8),
