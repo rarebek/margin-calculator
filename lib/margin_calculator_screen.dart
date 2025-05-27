@@ -47,6 +47,23 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
     _boughtPriceController.addListener(_calculateOnChange);
     _sellingPriceController.addListener(_onSellingPriceChanged);
     _marginController.addListener(_onMarginChanged);
+
+    // Add focus listeners to handle field transitions
+    _sellingPriceFocus.addListener(() {
+      // When selling price gets focus and already has content
+      if (_sellingPriceFocus.hasFocus) {
+        // Force UI update to respect new focus state
+        setState(() {});
+      }
+    });
+
+    _marginFocus.addListener(() {
+      // When margin gets focus and already has content
+      if (_marginFocus.hasFocus) {
+        // Force UI update to respect new focus state
+        setState(() {});
+      }
+    });
   }
 
   @override
@@ -324,16 +341,20 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // We need separate flags that don't influence each other
-    // Only disable margin when selling price has content AND user isn't actively editing selling price
-    bool isMarginDisabled = _sellingPriceController.text.isNotEmpty && !_sellingPriceFocus.hasFocus;
+    // Track which input is being used
+    bool isUsingSellingPrice = _sellingPriceController.text.isNotEmpty || _sellingPriceFocus.hasFocus;
+    bool isUsingMargin = _marginController.text.isNotEmpty || _marginFocus.hasFocus;
 
-    // Only disable selling price when margin has content AND user isn't actively editing margin
-    bool isSellingPriceDisabled = _marginController.text.isNotEmpty && !_marginFocus.hasFocus;
+    // Ensure each field is properly enabled/disabled:
+    // - When selling price has content or focus, disable margin
+    // - When margin has content or focus, disable selling price
 
-    // Debug print to see the state
-    print("Margin disabled: $isMarginDisabled, Selling Price disabled: $isSellingPriceDisabled");
-    print("Margin text: ${_marginController.text}, Selling Price text: ${_sellingPriceController.text}");
+    // Important: Don't disable the field that has focus!
+    bool disableSellingPrice = isUsingMargin && !_sellingPriceFocus.hasFocus;
+    bool disableMargin = isUsingSellingPrice && !_marginFocus.hasFocus;
+
+    print("Using selling: $isUsingSellingPrice, using margin: $isUsingMargin");
+    print("Disable selling: $disableSellingPrice, disable margin: $disableMargin");
 
     return GestureDetector(
       // Dismiss keyboard when tapping outside input fields
@@ -467,7 +488,7 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
                                 child: TextField(
                                   controller: _sellingPriceController,
                                   focusNode: _sellingPriceFocus,
-                                  enabled: !isSellingPriceDisabled, // Disabled when margin has a value
+                                  enabled: !disableSellingPrice,
                                   decoration: const InputDecoration(
                                     labelText: 'Selling Price',
                                     border: OutlineInputBorder(),
@@ -493,19 +514,11 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
                                     }),
                                   ],
                                   onChanged: (value) {
-                                    // Only manage state when value changes
+                                    // Update UI to reflect the change
                                     setState(() {});
 
-                                    // If user clears the selling price field
-                                    if (value.isEmpty) {
-                                      // Only clear margin if it's not being edited
-                                      if (!_marginFocus.hasFocus) {
-                                        _marginController.removeListener(_onMarginChanged);
-                                        _marginController.text = '';
-                                        _marginController.addListener(_onMarginChanged);
-                                      }
-                                    } else if (_boughtPriceController.text.isNotEmpty) {
-                                      // Calculate margin in real-time as user types, but don't disable selling price while typing
+                                    // If bought price exists and selling price has a value, calculate margin
+                                    if (_boughtPriceController.text.isNotEmpty && value.isNotEmpty) {
                                       _calculateMargin(updateUI: true);
                                     }
                                   },
@@ -568,7 +581,7 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
                         TextField(
                           controller: _marginController,
                           focusNode: _marginFocus,
-                          enabled: !isMarginDisabled, // Disabled when selling price has a value
+                          enabled: !disableMargin,
                           decoration: const InputDecoration(
                             labelText: 'Margin (%)',
                             border: OutlineInputBorder(),
@@ -594,19 +607,11 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
                             }),
                           ],
                           onChanged: (value) {
-                            // Only manage state when value changes
+                            // Update UI to reflect the change
                             setState(() {});
 
-                            // If user clears the margin field
-                            if (value.isEmpty) {
-                              // Only clear selling price if it's not being edited
-                              if (!_sellingPriceFocus.hasFocus) {
-                                _sellingPriceController.removeListener(_onSellingPriceChanged);
-                                _sellingPriceController.text = '';
-                                _sellingPriceController.addListener(_onSellingPriceChanged);
-                              }
-                            } else if (_boughtPriceController.text.isNotEmpty) {
-                              // Calculate selling price in real-time as user types, but don't disable margin while typing
+                            // If bought price exists and margin has a value, calculate selling price
+                            if (_boughtPriceController.text.isNotEmpty && value.isNotEmpty) {
                               _calculateSellingPrice(updateUI: true);
                             }
                           },
