@@ -72,7 +72,10 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
   // Handler for selling price changes
   void _onSellingPriceChanged() {
     if (_boughtPriceController.text.isNotEmpty && _sellingPriceController.text.isNotEmpty) {
-      _calculateMargin(updateUI: true);
+      // Don't calculate margin if selling price field has focus (user is still typing)
+      if (!_sellingPriceFocus.hasFocus) {
+        _calculateMargin(updateUI: true);
+      }
     }
     setState(() {});  // Update UI to refresh disabled state
   }
@@ -80,7 +83,10 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
   // Handler for margin changes
   void _onMarginChanged() {
     if (_boughtPriceController.text.isNotEmpty && _marginController.text.isNotEmpty) {
-      _calculateSellingPrice(updateUI: true);
+      // Don't calculate selling price if margin field has focus (user is still typing)
+      if (!_marginFocus.hasFocus) {
+        _calculateSellingPrice(updateUI: true);
+      }
     }
     setState(() {});  // Update UI to refresh disabled state
   }
@@ -318,9 +324,16 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Determine which field should be disabled
-    bool isMarginDisabled = _sellingPriceController.text.isNotEmpty;
-    bool isSellingPriceDisabled = _marginController.text.isNotEmpty;
+    // We need separate flags that don't influence each other
+    // Only disable margin when selling price has content AND user isn't actively editing selling price
+    bool isMarginDisabled = _sellingPriceController.text.isNotEmpty && !_sellingPriceFocus.hasFocus;
+
+    // Only disable selling price when margin has content AND user isn't actively editing margin
+    bool isSellingPriceDisabled = _marginController.text.isNotEmpty && !_marginFocus.hasFocus;
+
+    // Debug print to see the state
+    print("Margin disabled: $isMarginDisabled, Selling Price disabled: $isSellingPriceDisabled");
+    print("Margin text: ${_marginController.text}, Selling Price text: ${_sellingPriceController.text}");
 
     return GestureDetector(
       // Dismiss keyboard when tapping outside input fields
@@ -480,15 +493,19 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
                                     }),
                                   ],
                                   onChanged: (value) {
-                                    // If value is empty, clear margin to allow user to type there instead
+                                    // Only manage state when value changes
+                                    setState(() {});
+
+                                    // If user clears the selling price field
                                     if (value.isEmpty) {
-                                      setState(() {
+                                      // Only clear margin if it's not being edited
+                                      if (!_marginFocus.hasFocus) {
                                         _marginController.removeListener(_onMarginChanged);
                                         _marginController.text = '';
                                         _marginController.addListener(_onMarginChanged);
-                                      });
+                                      }
                                     } else if (_boughtPriceController.text.isNotEmpty) {
-                                      // Calculate margin in real-time as user types
+                                      // Calculate margin in real-time as user types, but don't disable selling price while typing
                                       _calculateMargin(updateUI: true);
                                     }
                                   },
@@ -577,15 +594,19 @@ class _MarginCalculatorScreenState extends State<MarginCalculatorScreen> {
                             }),
                           ],
                           onChanged: (value) {
-                            // If value is empty, clear selling price to allow user to type there instead
+                            // Only manage state when value changes
+                            setState(() {});
+
+                            // If user clears the margin field
                             if (value.isEmpty) {
-                              setState(() {
+                              // Only clear selling price if it's not being edited
+                              if (!_sellingPriceFocus.hasFocus) {
                                 _sellingPriceController.removeListener(_onSellingPriceChanged);
                                 _sellingPriceController.text = '';
                                 _sellingPriceController.addListener(_onSellingPriceChanged);
-                              });
+                              }
                             } else if (_boughtPriceController.text.isNotEmpty) {
-                              // Calculate selling price in real-time as user types
+                              // Calculate selling price in real-time as user types, but don't disable margin while typing
                               _calculateSellingPrice(updateUI: true);
                             }
                           },
